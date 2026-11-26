@@ -1,5 +1,8 @@
 # HedgeHint — FX Exposure Autopilot for Importers
 
+**Live Production Address:** [https://hedgehint.vercel.app](https://hedgehint.vercel.app)  
+**Hosted Infrastructure:** Vercel (Functions in Dublin `dub1`) + Supabase PostgreSQL (`eu-west-1`) & Storage
+
 HedgeHint helps importers and businesses that pay suppliers in foreign currency manage exchange-rate risk. It ingests purchase orders and supplier invoices to calculate future foreign-currency needs by currency and calendar week. It tracks live and historical rates, models what-if currency swings, enforces a strict purchase approval workflow, and tracks realised savings against spot markets.
 
 ---
