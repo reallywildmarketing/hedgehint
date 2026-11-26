@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { getAuthSession } from "@/lib/auth"
 import { signOut } from "@/lib/auth"
 import Link from "next/link"
+import "./globals.css"
 
 export const dynamic = "force-dynamic"
 
