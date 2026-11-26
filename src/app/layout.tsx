@@ -21,6 +21,14 @@ export default async function RootLayout({
 
   return (
     <html lang="en">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Fraunces:ital,opsz,wght@0,9..144,400..700;1,9..144,400..700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="flex flex-col bg-slate-50 text-slate-900 antialiased min-h-screen">
         <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/80 backdrop-blur">
           <div className="flex items-center justify-between px-6 py-3">
