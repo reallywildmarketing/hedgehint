@@ -7,17 +7,23 @@ import os from "os"
 const prisma = new PrismaClient()
 
 async function loadEnvFallback() {
-  const configEnvPath = path.join(os.homedir(), ".config", "hedgehint", "admin.env")
-  if (fs.existsSync(configEnvPath)) {
-    const lines = fs.readFileSync(configEnvPath, "utf-8").split("\n")
-    for (const line of lines) {
-      const match = line.match(/^\s*([\w_]+)\s*=\s*(.*)?\s*$/)
-      if (match) {
-        const key = match[1]
-        let val = (match[2] || "").trim()
-        if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
-        if (!process.env[key]) process.env[key] = val
+  const paths = [
+    path.join(os.homedir(), ".config", "reallywild", "admin.env"),
+    path.join(os.homedir(), ".config", "hedgehint", "admin.env"),
+  ]
+  for (const configEnvPath of paths) {
+    if (fs.existsSync(configEnvPath)) {
+      const lines = fs.readFileSync(configEnvPath, "utf-8").split("\n")
+      for (const line of lines) {
+        const match = line.match(/^\s*([\w_]+)\s*=\s*(.*)?\s*$/)
+        if (match) {
+          const key = match[1]
+          let val = (match[2] || "").trim()
+          if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1)
+          if (!process.env[key]) process.env[key] = val
+        }
       }
+      break
     }
   }
 }

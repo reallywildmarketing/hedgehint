@@ -2,11 +2,15 @@ import { NextResponse, type NextRequest } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { evaluateAlerts } from "@/domain/alert"
 
-export async function POST(request: NextRequest) {
-  const secretHeader = request.headers.get("x-scheduler-secret")
-  const expectedSecret = process.env.SCHEDULER_SECRET || "dev-scheduler-secret"
+async function handleScheduler(request: NextRequest) {
+  const authHeader = request.headers.get("authorization")
+  const customHeader = request.headers.get("x-scheduler-secret")
+  const expectedSecret = process.env.CRON_SECRET || process.env.SCHEDULER_SECRET || "dev-scheduler-secret"
 
-  if (!secretHeader || secretHeader !== expectedSecret) {
+  const bearerToken = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null
+  const provided = bearerToken || customHeader
+
+  if (!provided || provided !== expectedSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
@@ -64,3 +68,12 @@ export async function POST(request: NextRequest) {
     alertsTriggered: triggered.length,
   })
 }
+
+export async function GET(request: NextRequest) {
+  return handleScheduler(request)
+}
+
+export async function POST(request: NextRequest) {
+  return handleScheduler(request)
+}
+

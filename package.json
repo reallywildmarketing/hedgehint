@@ -8,7 +8,11 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run --no-file-parallelism",
-    "admin:create": "tsx scripts/admin-create.ts"
+    "admin:create": "tsx scripts/admin-create.ts",
+    "postinstall": "prisma generate"
+  },
+  "engines": {
+    "node": "24.x"
   },
   "dependencies": {
     "@auth/core": "^0.41.3",

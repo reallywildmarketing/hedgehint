@@ -16,6 +16,70 @@ export interface StorageAdapter {
   delete(key: string): Promise<void>
 }
 
+function checkKey(key: string) {
+  if (!key || key.startsWith("/") || key.split("/").some((s) => !s || s === "." || s === "..")) {
+    throw new Error("Invalid storage key.")
+  }
+}
+
+function getSupabaseConfig(key: string) {
+  const { SUPABASE_URL, SUPABASE_SECRET_KEY, SUPABASE_BUCKET } = process.env
+  if (!SUPABASE_URL || !SUPABASE_SECRET_KEY || !SUPABASE_BUCKET) {
+    throw new Error("Supabase storage needs SUPABASE_URL, SUPABASE_SECRET_KEY and SUPABASE_BUCKET.")
+  }
+  const objectPath = key.split("/").map(encodeURIComponent).join("/")
+  return {
+    url: `${SUPABASE_URL.replace(/\/$/, "")}/storage/v1/object/${encodeURIComponent(SUPABASE_BUCKET)}/${objectPath}`,
+    headers: {
+      apikey: SUPABASE_SECRET_KEY,
+      Authorization: `Bearer ${SUPABASE_SECRET_KEY}`,
+    },
+  }
+}
+
+class SupabaseStorageAdapter implements StorageAdapter {
+  async upload(fileBuffer: Buffer, contentType: string): Promise<StorageUploadResult> {
+    if (fileBuffer.byteLength > MAX_UPLOAD_SIZE_BYTES) {
+      throw new Error(`File size (${fileBuffer.byteLength} bytes) exceeds maximum limit of 4 MB.`)
+    }
+    const key = `upload_${Date.now()}_${crypto.randomUUID()}`
+    checkKey(key)
+
+    const s = getSupabaseConfig(key)
+    const res = await fetch(s.url, {
+      method: "POST",
+      headers: { ...s.headers, "Content-Type": contentType, "x-upsert": "false" },
+      body: fileBuffer,
+      cache: "no-store",
+    })
+
+    if (!res.ok) {
+      throw new Error(`Supabase storage upload failed with status ${res.status}`)
+    }
+
+    return { key, sizeBytes: fileBuffer.byteLength, contentType }
+  }
+
+  async download(key: string): Promise<Buffer> {
+    checkKey(key)
+    const s = getSupabaseConfig(key)
+    const res = await fetch(s.url, { headers: s.headers, cache: "no-store" })
+    if (!res.ok) {
+      throw new Error(`Supabase storage download failed with status ${res.status}`)
+    }
+    return Buffer.from(await res.arrayBuffer())
+  }
+
+  async delete(key: string): Promise<void> {
+    checkKey(key)
+    const s = getSupabaseConfig(key)
+    const res = await fetch(s.url, { method: "DELETE", headers: s.headers, cache: "no-store" })
+    if (!res.ok && res.status !== 404) {
+      throw new Error(`Supabase storage delete failed with status ${res.status}`)
+    }
+  }
+}
+
 class LocalStorageAdapter implements StorageAdapter {
   private baseDir: string
 
@@ -33,10 +97,8 @@ class LocalStorageAdapter implements StorageAdapter {
     }
 
     await this.ensureDir()
-    // Server-generated opaque key (never user-supplied name to prevent directory traversal)
     const key = `upload_${Date.now()}_${crypto.randomUUID()}`
     const filePath = path.join(this.baseDir, key)
-
     await fs.writeFile(filePath, fileBuffer)
 
     return {
@@ -47,10 +109,8 @@ class LocalStorageAdapter implements StorageAdapter {
   }
 
   async download(key: string): Promise<Buffer> {
-    // Sanitize key
     const safeKey = path.basename(key)
     const filePath = path.join(this.baseDir, safeKey)
-
     try {
       return await fs.readFile(filePath)
     } catch {
@@ -64,10 +124,11 @@ class LocalStorageAdapter implements StorageAdapter {
     try {
       await fs.unlink(filePath)
     } catch {
-      // Ignore if already deleted
+      // Ignore
     }
   }
 }
 
-// Singleton storage adapter instance
-export const storage: StorageAdapter = new LocalStorageAdapter()
+export const storage: StorageAdapter =
+  process.env.STORAGE_DRIVER === "supabase" ? new SupabaseStorageAdapter() : new LocalStorageAdapter()
+
