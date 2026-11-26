@@ -49,7 +49,7 @@ class SupabaseStorageAdapter implements StorageAdapter {
     const res = await fetch(s.url, {
       method: "POST",
       headers: { ...s.headers, "Content-Type": contentType, "x-upsert": "false" },
-      body: fileBuffer,
+      body: new Uint8Array(fileBuffer),
       cache: "no-store",
     })
 
